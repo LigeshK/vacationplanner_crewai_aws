@@ -1,6 +1,11 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
+from crewai_tools import SerperDevTool
+import os
+
+#initialize SerperDevTool with API key from environment variable
+serper_dev_tool = SerperDevTool(api_key=os.getenv("Serper_API_KEY"))
 
 
 @CrewBase
@@ -11,16 +16,17 @@ class VacationPlanner():
     tasks: list[Task]
 
     @agent
-    def researcher(self) -> Agent:
+    def vacation_researcher(self) -> Agent:
         return Agent(
-            config=self.agents_config['researcher'], # type: ignore[index]
-            verbose=True
+            config=self.agents_config['vacation_researcher'], # type: ignore[index]
+            verbose=True,
+            tools=[serper_dev_tool]
         )
 
     @agent
-    def reporting_analyst(self) -> Agent:
+    def itinerary_planner(self) -> Agent:
         return Agent(
-            config=self.agents_config['reporting_analyst'], # type: ignore[index]
+            config=self.agents_config['itinerary_planner'], # type: ignore[index]
             verbose=True
         )
 
