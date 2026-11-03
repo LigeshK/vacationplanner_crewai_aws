@@ -1,0 +1,25 @@
+# Local LLM for the vacation_planner crew.
+# Start:  docker compose up -d
+# Model:  docker compose exec ollama ollama pull llama3.2:3b
+# The crew reaches it at http://localhost:11434 (OLLAMA_API_BASE in .env).
+services:
+  ollama:
+    image: ollama/ollama:0.40.13
+    container_name: vacation-ollama   # "ollama" is already taken by the Ecommerce.AI project
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama   # models survive container rebuilds
+    restart: unless-stopped
+    # CPU only: no NVIDIA GPU on this machine. With one (Docker Desktop on WSL2),
+    # uncomment to use it:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  ollama:
