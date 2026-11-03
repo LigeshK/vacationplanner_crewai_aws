@@ -15,7 +15,7 @@ from crewai import LLM, Agent, Crew, Process, Task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.project import CrewBase, agent, crew, task
 from crewai_tools import SerperDevTool
-
+from crewai import LLM
 
 # ---------------------------------------------------------------------------
 # Tools
@@ -23,7 +23,7 @@ from crewai_tools import SerperDevTool
 
 # Google search via serper.dev. The API key is read from .env (Serper_API_KEY).
 serper_dev_tool = SerperDevTool(api_key=os.getenv("Serper_API_KEY"))
-
+llm=LLM(model=os.getenv("MODEL", "ollama/llama3.2:3b"), base_url=os.getenv("OLLAMA_API_BASE", "http://localhost:11434"), temperature=0.3)
 
 # ---------------------------------------------------------------------------
 # LLM (the "brain" every agent uses)
@@ -72,8 +72,9 @@ class VacationPlanner():
         return Agent(
             config=self.agents_config['vacation_researcher'],  # type: ignore[index]
             verbose=True,              # print the agent's reasoning to the console
-            llm=local_llm,             # which model this agent thinks with
+            #llm=local_llm,             # which model this agent thinks with
             tools=[serper_dev_tool],   # only this agent can search the web
+            llm=llm
         )
 
     @agent
@@ -82,7 +83,8 @@ class VacationPlanner():
         return Agent(
             config=self.agents_config['itinerary_planner'],  # type: ignore[index]
             verbose=True,
-            llm=local_llm,             # no tools: works only from the research it receives
+            #llm=local_llm,             # no tools: works only from the research it receives
+            llm=llm
         )
 
     # --- Tasks --------------------------------------------------------------
