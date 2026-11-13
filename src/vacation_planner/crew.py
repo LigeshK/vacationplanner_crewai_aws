@@ -17,6 +17,11 @@ from crewai.project import CrewBase, agent, crew, task
 from crewai_tools import SerperDevTool
 from crewai import LLM
 
+#Agent core changes
+#Add AgentCore - imports
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
+app = BedrockAgentCoreApp()
+
 # ---------------------------------------------------------------------------
 # Tools
 # ---------------------------------------------------------------------------
@@ -117,3 +122,52 @@ class VacationPlanner():
             process=Process.sequential,  # run tasks in order; each sees the previous output
             verbose=True,
         )
+# @agentcore.entrypoint decorator is used to mark the entry point of the BedrockAgentCoreApp. It specifies which crew class to run when the application starts.
+@app.entrypoint
+def agent_invocation(payload,context):
+    """Handle the agent invocation. """
+    print("Agent invocation received with payload:", payload)
+    try:
+        #extract user input from payload
+        user_input = payload.get("topic","Tokyo, Japan")  # Default to "Tokyo, Japan" if not provided
+        print(f"User input extracted: {user_input}")
+
+        #Crew execution - Creates an instance of the Vacation Planner class and run crew method with user input as argument
+        research_crew_instance = VacationPlanner()
+        crew = research_crew_instance.crew()
+
+        #starts the sequential agent workflow
+        result = crew.kickoff(inputs={"topic": user_input})
+        print("Context:\n-----\n", context)
+        print("Result Raw:\n-----\n", result.raw)
+
+        #Safely access json_dict if it exists
+        if hasattr(result, 'json_dict'):
+            print("Result JSON:\n-----\n", result.json_dict)
+        else:
+            print("No JSON output available.")
+        return {"result":result.raw}
+    except Exception as e:
+        print(f"Error during agent invocation: {e}")
+        return{"error":f"Error during agent invocation: {e}"}
+
+#Local test function
+def test_local():
+    """Test the crew locally without BedrockAgentCoreApp."""
+    try:
+        crew_instance = VacationPlanner()
+        crew = crew_instance.crew()
+        result = crew.kickoff(inputs={"topic": "Plan a vacation to Germany"})
+        print("Result Raw:\n-----\n", result.raw)
+        if hasattr(result, 'json_dict'):
+            print("Result JSON:\n-----\n", result.json_dict)
+        else:
+            print("No JSON output available.")
+        return result
+    except Exception as e:
+        print(f"Error during local test: {e}")
+        return {"error": f"Error during local test: {e}"}
+if __name__ == "__main__":
+
+    # Run AgentCore server - HTTP server on port 8080
+    app.run()
