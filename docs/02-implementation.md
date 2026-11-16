@@ -41,15 +41,16 @@ The wizard asks for an LLM provider and model. We chose **Amazon Bedrock → Nov
 
 ## 5. Web search tool – Serper
 
-The researcher needs internet access. We used `SerperDevTool` from `crewai_tools`. The course notes call it "Surfer Dev"; the correct name is **Serper**.
+The researcher needs internet access. The course used `SerperDevTool` from `crewai_tools` (the notes call it "Surfer Dev"; the correct name is **Serper**). We later replaced it with a small custom `SerperSearchTool` in `tools/custom_tool.py`: one HTTP call with `requests`. That removed the `crewai[tools]` extra, which added over 1 GB (lancedb, pyarrow, docker, pyright) to the Docker image.
 
 1. Get an API key at [serper.dev](https://serper.dev).
 2. Put it in `.env` as `Serper_API_KEY=...` (this project uses this exact casing).
 3. In `crew.py`:
    ```python
-   serper_dev_tool = SerperDevTool(api_key=os.getenv("Serper_API_KEY"))
+   from vacation_planner.tools.custom_tool import SerperSearchTool
+   tools=[SerperSearchTool()]   # reads Serper_API_KEY from the environment
    ```
-4. Give it only to the researcher: `tools=[serper_dev_tool]`.
+4. Give it only to the researcher.
 
 The course hardcoded the key in `crew.py` while debugging. Don't do that; keep keys in `.env`.
 

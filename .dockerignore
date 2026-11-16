@@ -1,0 +1,34 @@
+# Keep secrets and files the image doesn't need out of the build context.
+# The Dockerfile only copies requirements.txt, src/ and pyproject.toml.
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# VCS / tooling
+.git
+.gitignore
+.dockerignore
+Dockerfile
+
+# Python artifacts
+.venv
+venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+
+# Docs, tests and outputs
+docs
+tests
+*.md
+src/vacation_planner/screenshots
+
+# Not copied by the Dockerfile; remove this line and add
+# `COPY knowledge/ ./knowledge/` if the crew needs it in the image
+knowledge
+uv.lock
+streamlitui.py
+report.md
+*.pdf

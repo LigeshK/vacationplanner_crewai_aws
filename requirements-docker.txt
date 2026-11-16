@@ -1,0 +1,5 @@
+# Docker runtime deps. Plain `crewai` (no [tools] extra, saves 1 GB+); search is tools/custom_tool.py.
+bedrock-agentcore==0.1.4
+boto3==1.40.35
+crewai==0.193.2
+aws-opentelemetry-distro==0.22.0

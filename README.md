@@ -23,8 +23,8 @@ User ──> Streamlit UI or `crewai run`
 |---|---|
 | Agent framework | CrewAI 1.15.34 |
 | Language | Python 3.12 (3.10–3.13 supported) |
-| LLM | Ollama `llama3.2:3b`, running in Docker |
-| Web search | Serper (`SerperDevTool`) |
+| LLM | Ollama `qwen2.5:0.5b` (Q4_K_M, ~400 MB), baked into the image |
+| Web search | Serper (custom `SerperSearchTool` in `tools/custom_tool.py`) |
 | UI | Streamlit |
 | Packages | uv |
 
@@ -37,7 +37,7 @@ cd vacation_planner
 
 # 1. Start the local LLM server and download the model (first time only)
 docker compose up -d
-docker exec vacation-ollama ollama pull llama3.2:3b
+docker exec vacation-ollama ollama pull qwen2.5:0.5b
 
 # 2. Settings: copy the template and put your Serper key in .env
 copy .env.example .env

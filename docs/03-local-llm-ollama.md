@@ -17,7 +17,7 @@ Removed code was **commented out, not deleted**, so Bedrock can be restored late
 ```ini
 # MODEL=bedrock/apac.amazon.nova-pro-v1:0       # Bedrock (disabled)
 # AWS_DEFAULT_REGION=ap-southeast-2
-MODEL=ollama/llama3.2:3b                         # <provider>/<model>
+MODEL=ollama/qwen2.5:0.5b                         # <provider>/<model>
 OLLAMA_API_BASE=http://localhost:11434           # where Ollama listens
 Serper_API_KEY=...
 ```
@@ -29,7 +29,7 @@ Serper_API_KEY=...
 
 ```python
 llm = LLM(
-    model=os.getenv("MODEL", "ollama/llama3.2:3b"),
+    model=os.getenv("MODEL", "ollama/qwen2.5:0.5b"),
     base_url=os.getenv("OLLAMA_API_BASE", "http://localhost:11434"),
     temperature=0.3,
 )
@@ -67,7 +67,7 @@ services:
 ```
 crew.py ──reads──> .env (MODEL, OLLAMA_API_BASE)
    │
-   └──prompts──> localhost:11434 ──> vacation-ollama container ──> llama3.2:3b
+   └──prompts──> localhost:11434 ──> vacation-ollama container ──> qwen2.5:0.5b
 ```
 
 ## Everyday commands
@@ -88,3 +88,8 @@ To change model: pull it, then update `MODEL` in `.env`. Nothing else changes.
 2. `crew.py`: uncomment the Bedrock `LLM(...)` line and comment out the Ollama one.
 3. `pyproject.toml`: uncomment `boto3`, then run `uv sync`.
 4. Check AWS credentials: `aws sts get-caller-identity`.
+
+## Update: switched to `qwen2.5:0.5b`
+
+To cut disk use and RAM, the image now bakes in `qwen2.5:0.5b`, a ~400 MB 4-bit (Q4_K_M) GGUF. It needs about 1 GB RAM at runtime. The image ships only Ollama's CPU backends, not the GPU libraries.
+If the 0.5B model calls the Serper tool unreliably, rebuild with `--build-arg OLLAMA_MODEL=qwen2.5:1.5b`, which is about 1 GB. No code changes are needed.

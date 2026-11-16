@@ -1,7 +1,51 @@
-import streamlit as st
+import json
 import os
+import urllib.request
+import uuid
 from datetime import datetime
-from src.vacation_planner.crew import VacationPlanner # Replace path 1
+
+import streamlit as st
+
+# Backend: AgentCore runtime (AGENTCORE_RUNTIME_ARN), local container (AGENT_URL), else in-process crew.
+AGENTCORE_RUNTIME_ARN = os.getenv("AGENTCORE_RUNTIME_ARN")
+AGENT_URL = os.getenv("AGENT_URL")
+AWS_REGION = os.getenv("AWS_REGION", "ap-southeast-2")
+TIMEOUT_S = 900
+
+if AGENTCORE_RUNTIME_ARN:
+    BACKEND = f"AWS AgentCore ({AWS_REGION})"
+elif AGENT_URL:
+    BACKEND = f"Container at {AGENT_URL}"
+else:
+    BACKEND = "In-process crew (local Ollama)"
+
+
+def invoke_remote(topic: str) -> dict:
+    """Call the deployed agent; returns {"result": ...} or {"error": ...} from crew.agent_invocation."""
+    payload = json.dumps({"topic": topic}).encode()
+    if AGENTCORE_RUNTIME_ARN:
+        import boto3
+        from botocore.config import Config
+
+        client = boto3.client(
+            "bedrock-agentcore",
+            region_name=AWS_REGION,
+            config=Config(read_timeout=TIMEOUT_S, retries={"max_attempts": 1}),
+        )
+        resp = client.invoke_agent_runtime(
+            agentRuntimeArn=AGENTCORE_RUNTIME_ARN,
+            runtimeSessionId=f"{uuid.uuid4().hex}-vacation",  # must be >= 33 chars
+            qualifier="DEFAULT",
+            payload=payload,
+        )
+        return json.loads(resp["response"].read())
+    req = urllib.request.Request(
+        f"{AGENT_URL.rstrip('/')}/invocations",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
+        return json.loads(r.read())
 
 st.set_page_config(page_title="Personal AI Vacation Planner ", page_icon="✈️")
 
@@ -94,19 +138,28 @@ if submitted and destination:
             status_text.text('🔍 Researching destination...')
             progress_bar.progress(25)
             
-            # Run the crew
-            result = VacationPlanner().crew().kickoff(inputs=inputs)
-            
+            report_content = None
+            if AGENTCORE_RUNTIME_ARN or AGENT_URL:
+                response = invoke_remote(destination)
+                if "error" in response:
+                    raise RuntimeError(response["error"])
+                result = report_content = response.get("result", "")
+            else:
+                from src.vacation_planner.crew import VacationPlanner
+
+                result = VacationPlanner().crew().kickoff(inputs=inputs)
+                if os.path.exists("report.md"):
+                    with open("report.md", "r", encoding="utf-8") as f:
+                        report_content = f.read()
+
             progress_bar.progress(100)
             status_text.text('✅ Complete!')
-            
+
             st.balloons()
             st.success(f"🎉 Your {destination} vacation plan is ready!")
-            
+
             # Display result in enhanced container
-            if os.path.exists("report.md"):
-                with open("report.md", "r", encoding="utf-8") as f:
-                    report_content = f.read()
+            if report_content:
                 st.markdown('<div class="vacation-container">', unsafe_allow_html=True)
                 st.markdown(f"## 🗺️ Your {destination} Adventure Plan")
                 st.markdown(report_content)
@@ -132,6 +185,7 @@ elif submitted:
 
 # Enhanced sidebar
 with st.sidebar:
+    st.caption(f"Backend: {BACKEND}")
     st.markdown("### 🌟 What This App Does")
     
     features = [

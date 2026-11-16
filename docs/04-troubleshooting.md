@@ -14,7 +14,7 @@ The issues we hit while moving from Bedrock to a local LLM, in the order they ha
 | 6 | Port 11434 already allocated | Both projects' Ollama containers publish 11434 | Run only one at a time (`docker stop <name>`), or map ours to `11435:11434` and update `OLLAMA_API_BASE`. |
 | 7 | Test prompt hangs; log shows `Load failed … timed out waiting for llama-server to start` | Not enough free RAM: 7.8 GB total, ~0.6 GB free; the Docker VM is capped at ~3.7 GB, so Windows pages it to disk | Close Chrome and other heavy apps and retry. After the model loaded, the **first prompt took ~134 s and the next ~7 s**. |
 | 8 | `llama3.1:8b` too heavy for this PC | 8B model needs ~6–8 GB RAM on CPU | Switched to `llama3.2:3b` (~2.5 GB). Even smaller: `llama3.2:1b`, but it's weaker at tool calls. |
-| 9 | Groq not usable as `groq/...` | Groq is not a native CrewAI provider; it needs LiteLLM | `uv add "crewai[tools,litellm]"`, then `MODEL=groq/<model>` and `GROQ_API_KEY` in `.env`. The attempt was stopped: `pyproject.toml` lists the extra but litellm isn't installed yet. |
+| 9 | Groq not usable as `groq/...` | Groq is not a native CrewAI provider; it needs LiteLLM | `uv add "crewai[litellm]"`, then `MODEL=groq/<model>` and `GROQ_API_KEY` in `.env`. The attempt was stopped: `pyproject.toml` lists the extra but litellm isn't installed yet. |
 | 10 | Researcher answers without searching | Small local models sometimes skip tool calls | Check the verbose log for the Serper call. Keep `temperature` low, or try `qwen2.5:7b` if RAM allows. |
 | 11 | `README.md` contained `<<<<<<< HEAD … >>>>>>>` | Unresolved git merge conflict | Resolved by rewriting the README. |
 
