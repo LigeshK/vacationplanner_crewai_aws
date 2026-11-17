@@ -1,18 +1,26 @@
 import json
 import os
+import urllib.error
 import urllib.request
 import uuid
 from datetime import datetime
 
 import streamlit as st
 
-# Backend: AgentCore runtime (AGENTCORE_RUNTIME_ARN), local container (AGENT_URL), else in-process crew.
+# Backend: API Gateway (API_GATEWAY_URL; set to "" to disable), AgentCore runtime (AGENTCORE_RUNTIME_ARN),
+# local container (AGENT_URL), else in-process crew.
+API_GATEWAY_URL = os.getenv(
+    "API_GATEWAY_URL",
+    "https://gtwtlnddff.execute-api.ap-southeast-2.amazonaws.com/prod/vacation_planner",
+)
 AGENTCORE_RUNTIME_ARN = os.getenv("AGENTCORE_RUNTIME_ARN")
 AGENT_URL = os.getenv("AGENT_URL")
 AWS_REGION = os.getenv("AWS_REGION", "ap-southeast-2")
 TIMEOUT_S = 900
 
-if AGENTCORE_RUNTIME_ARN:
+if API_GATEWAY_URL:
+    BACKEND = f"API Gateway ({API_GATEWAY_URL})"
+elif AGENTCORE_RUNTIME_ARN:
     BACKEND = f"AWS AgentCore ({AWS_REGION})"
 elif AGENT_URL:
     BACKEND = f"Container at {AGENT_URL}"
@@ -23,6 +31,27 @@ else:
 def invoke_remote(topic: str) -> dict:
     """Call the deployed agent; returns {"result": ...} or {"error": ...} from crew.agent_invocation."""
     payload = json.dumps({"topic": topic}).encode()
+    if API_GATEWAY_URL:
+        req = urllib.request.Request(
+            API_GATEWAY_URL,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
+                data = json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            return {"error": f"HTTP {e.code}: {e.read().decode(errors='replace')}"}
+        # Non-proxy Lambda integrations wrap the payload as {"statusCode":..., "body": "<json>"}.
+        if isinstance(data, dict) and isinstance(data.get("body"), str):
+            try:
+                data = json.loads(data["body"])
+            except json.JSONDecodeError:
+                data = {"result": data["body"]}
+        if not isinstance(data, dict):
+            data = {"result": data}
+        return data
     if AGENTCORE_RUNTIME_ARN:
         import boto3
         from botocore.config import Config
@@ -139,7 +168,7 @@ if submitted and destination:
             progress_bar.progress(25)
             
             report_content = None
-            if AGENTCORE_RUNTIME_ARN or AGENT_URL:
+            if API_GATEWAY_URL or AGENTCORE_RUNTIME_ARN or AGENT_URL:
                 response = invoke_remote(destination)
                 if "error" in response:
                     raise RuntimeError(response["error"])
@@ -178,7 +207,7 @@ if submitted and destination:
                 
         except Exception as e:
             st.error(f"❌ An error occurred: {str(e)}")
-            st.info("🛠️ Please check your AWS credentials and API keys")
+            st.info(f"🛠️ Please check the backend ({BACKEND}) and your credentials / API keys")
 
 elif submitted:
     st.warning("⚠️ Please enter a destination to start planning!")
