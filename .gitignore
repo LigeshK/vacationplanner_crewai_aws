@@ -2,3 +2,11 @@ __pycache__/
 .DS_Store
 .crewai/
 models/
+
+# Secrets (keep the placeholder template)
+.env
+.env.*
+!.env.example
+
+# Raw, unredacted AWS screenshots/notes (redacted copies live in docs/images/screenshots/)
+src/vacation_planner/screenshots/
