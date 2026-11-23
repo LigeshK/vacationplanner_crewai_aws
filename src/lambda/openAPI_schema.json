@@ -1,0 +1,14 @@
+{
+  "name": "get_travel_packages",
+  "description": "Get city travel package including plan , cost , duration",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "city": {
+        "type": "string",
+        "description": "Name of the city for which travel packages are to be retrieved"
+      }
+    },
+    "required": ["city"]
+  }
+}
