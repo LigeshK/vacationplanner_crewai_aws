@@ -1,14 +1,14 @@
 import os
 import requests
 import json
+from dotenv import load_dotenv
 
-MCP_PROTOCOL_VERSION = "2025-11-25"
-# Set these in your environment before running:
-#   export CLIENT_ID="your-client-id"
-#   export CLIENT_SECRET="your-client-secret"
-CLIENT_ID = "48bo6mupddn9lbjc17ueibi9d4"
-CLIENT_SECRET = "1t2fhf6dc7bvm2igqkkli1c7nq9suckok0tolm2b7tes54npgebu"
-TOKEN_URL = "https://ap-southeast-2czkmt0kb9.auth.ap-southeast-2.amazoncognito.com/oauth2/token"
+# Settings come from the project's .env file.
+load_dotenv()
+MCP_PROTOCOL_VERSION = os.getenv("MCP_PROTOCOL_VERSION")
+CLIENT_ID = os.getenv("COGNITO_CLIENT_ID")
+CLIENT_SECRET = os.getenv("COGNITO_CLIENT_SECRET")
+TOKEN_URL = os.getenv("COGNITO_TOKEN_URL")
 
 def fetch_access_token(client_id, client_secret, token_url):
   response = requests.post(
@@ -62,11 +62,11 @@ def call_tool(gateway_url, access_token, tool_name, arguments):
 
 
 # Example usage
-gateway_url = "https://gateway-vacation-planner-lknfwclwfa.gateway.bedrock-agentcore.ap-southeast-2.amazonaws.com/mcp"
+gateway_url = os.getenv("GATEWAY_URL")
 access_token = fetch_access_token(CLIENT_ID, CLIENT_SECRET, TOKEN_URL)
 tools = list_tools(gateway_url, access_token)
 print(json.dumps(tools, indent=2))
 
 #call the vacation planner tool with the required arguments
-tools_response = call_tool(gateway_url, access_token, "target-travel-agent-tool__get_travel_packages", {"city": "Mumbai"})
+tools_response = call_tool(gateway_url, access_token, os.getenv("GATEWAY_TOOL_NAME"), {"city": "Mumbai"})
 print(json.dumps(tools_response, indent=2))

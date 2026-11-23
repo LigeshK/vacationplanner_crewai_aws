@@ -1,11 +1,15 @@
 import json
+import os
 import boto3
+
+# Set as a Lambda environment variable (Lambda has no .env file).
+TABLE_NAME = os.environ.get('TRAVEL_PACKAGES_TABLE', 'travel_packages')
 
 def lambda_handler(event, context):
     city = event['city']
     dynamodb = boto3.client('dynamodb')
     response = dynamodb.get_item(
-        TableName='travel_packages',
+        TableName=TABLE_NAME,
         Key={
             'city': {
                 'S': city

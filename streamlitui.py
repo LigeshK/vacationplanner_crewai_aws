@@ -6,16 +6,17 @@ import uuid
 from datetime import datetime
 
 import streamlit as st
+from dotenv import load_dotenv
 
-# Backend: API Gateway (API_GATEWAY_URL; set to "" to disable), AgentCore runtime (AGENTCORE_RUNTIME_ARN),
+# Settings come from the project's .env file.
+load_dotenv()
+
+# Backend: API Gateway (API_GATEWAY_URL; leave empty to disable), AgentCore runtime (AGENTCORE_RUNTIME_ARN),
 # local container (AGENT_URL), else in-process crew.
-API_GATEWAY_URL = os.getenv(
-    "API_GATEWAY_URL",
-    "https://gtwtlnddff.execute-api.ap-southeast-2.amazonaws.com/prod/vacation_planner",
-)
+API_GATEWAY_URL = os.getenv("API_GATEWAY_URL")
 AGENTCORE_RUNTIME_ARN = os.getenv("AGENTCORE_RUNTIME_ARN")
 AGENT_URL = os.getenv("AGENT_URL")
-AWS_REGION = os.getenv("AWS_REGION", "ap-southeast-2")
+AWS_REGION = os.getenv("AWS_REGION")
 TIMEOUT_S = 900
 
 if API_GATEWAY_URL:

@@ -1,14 +1,24 @@
 
 import json
+import os
 import boto3
 import uuid
+
+# Set these as Lambda environment variables (Lambda has no .env file).
+# Defaults keep the already-deployed function working until they are set.
+AWS_REGION = os.environ.get('AWS_REGION', 'ap-southeast-2')
+AGENT_RUNTIME_ARN = os.environ.get(
+    'AGENT_RUNTIME_ARN',
+    'arn:aws:bedrock-agentcore:ap-southeast-2:248317805748:runtime/vacation_planner_agent-MZP7J53xCF',
+)
+AGENT_RUNTIME_QUALIFIER = os.environ.get('AGENT_RUNTIME_QUALIFIER', 'vacation_planner01')
 
 def lambda_handler(event, context):
 
     # Create a client connection with Bedrock AgentCore
     client = boto3.client(
         'bedrock-agentcore',
-        region_name='ap-southeast-2'
+        region_name=AWS_REGION
     )
 
     # Get user input from event
@@ -25,10 +35,10 @@ def lambda_handler(event, context):
 
     # Invoke Bedrock AgentCore Runtime
     response = client.invoke_agent_runtime(
-        agentRuntimeArn='arn:aws:bedrock-agentcore:ap-southeast-2:248317805748:runtime/vacation_planner_agent-MZP7J53xCF',
+        agentRuntimeArn=AGENT_RUNTIME_ARN,
         runtimeSessionId=session_id,
         payload=payload,
-        qualifier="vacation_planner01"
+        qualifier=AGENT_RUNTIME_QUALIFIER
     )
 
     # Read and parse AgentCore response
