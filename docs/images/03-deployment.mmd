@@ -1,0 +1,47 @@
+flowchart LR
+    subgraph dev["Local development (Windows)"]
+        code["src/ · config/*.yaml<br/>requirements-docker.txt"]
+        model["models/qwen2.5-0.5b-instruct-q4_k_m.gguf<br/>(git-ignored, ~400 MB)"]
+        ps["deploy.ps1"]
+    end
+
+    subgraph build["docker buildx · --platform linux/arm64"]
+        s1["Stage 1 · deps<br/>uv CPython 3.11 → /opt/venv<br/>crewai · bedrock-agentcore · ADOT"]
+        s2["Stage 2 · runtime<br/>llama.cpp server base image<br/>model baked in · USER ubuntu"]
+        s1 --> s2
+    end
+
+    ecr[("Amazon ECR<br/>vacation-planner:latest<br/>scanOnPush")]
+
+    subgraph agentcore["Amazon Bedrock AgentCore"]
+        rt["AgentCore Runtime<br/>vacation_planner_agent<br/>endpoint qualifier"]
+        mem[("AgentCore Memory")]
+        gw["AgentCore Gateway<br/>target: get_travel_packages"]
+    end
+
+    subgraph backend["Tool backend"]
+        cog["Cognito user pool<br/>M2M app client"]
+        lam["Lambda<br/>lambdatravel_package_getdata"]
+        ddb[("DynamoDB<br/>travel_packages")]
+    end
+
+    subgraph front["Front door"]
+        apigw["API Gateway REST<br/>/prod/vacation_planner"]
+        inv["Lambda invoker<br/>lambda_function.py"]
+        st["Streamlit UI"]
+    end
+
+    cw["CloudWatch logs / traces"]
+
+    code --> ps
+    model --> ps
+    ps -- "ecr login · create repo" --> ecr
+    ps --> build
+    s2 -- "--push" --> ecr
+    ecr -- "container image URI" --> rt
+    rt --> mem
+    rt -- "MCP + Bearer JWT" --> gw
+    cog -. "JWT authorizer" .-> gw
+    gw --> lam --> ddb
+    st --> apigw --> inv -- "invoke_agent_runtime" --> rt
+    rt -. "ADOT / OTEL" .-> cw

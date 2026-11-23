@@ -1,0 +1,46 @@
+flowchart LR
+    user(["👤 Traveller"])
+
+    subgraph client["Presentation"]
+        ui["Streamlit UI<br/><code>streamlitui.py</code>"]
+    end
+
+    subgraph edge["Optional public edge"]
+        apigw["Amazon API Gateway<br/>REST POST"]
+        invoker["AWS Lambda<br/><code>lambda_function.py</code><br/>invoke_agent_runtime"]
+    end
+
+    subgraph runtime["Amazon Bedrock AgentCore Runtime (arm64 container from ECR)"]
+        entry["BedrockAgentCoreApp<br/>@app.entrypoint <code>agent_invocation</code><br/>:8080 /invocations"]
+        subgraph crew["CrewAI crew · Process.sequential"]
+            researcher["Agent: vacation_researcher<br/>tools: SerperSearchTool,<br/>get_travel_packages"]
+            planner["Agent: itinerary_planner<br/>→ report.md"]
+        end
+        llm["llama.cpp llama-server<br/>Qwen2.5-0.5B-Instruct GGUF<br/>127.0.0.1:8081/v1 (OpenAI API)"]
+        otel["ADOT<br/>opentelemetry-instrument"]
+    end
+
+    subgraph aws["AWS managed services"]
+        memory[("AgentCore Memory<br/>list_events / create_event")]
+        cognito["Amazon Cognito<br/>OAuth 2.0 token endpoint<br/>client_credentials"]
+        gateway["AgentCore Gateway<br/>MCP endpoint /mcp<br/>JWT inbound auth"]
+        toolLambda["AWS Lambda<br/><code>lambdatravel_package_getdata.py</code>"]
+        ddb[("Amazon DynamoDB<br/>travel_packages<br/>PK: city")]
+        cw["Amazon CloudWatch<br/>logs · traces"]
+    end
+
+    serper["Serper.dev<br/>Google Search API"]
+
+    user --> ui
+    ui -- "API_GATEWAY_URL" --> apigw --> invoker --> entry
+    ui -. "AGENTCORE_RUNTIME_ARN<br/>(boto3)" .-> entry
+    entry --> crew
+    researcher --> planner
+    researcher <--> llm
+    planner <--> llm
+    entry <--> memory
+    researcher -- "HTTPS" --> serper
+    researcher -- "1 · token request" --> cognito
+    researcher -- "2 · JSON-RPC tools/call<br/>Bearer JWT" --> gateway
+    gateway -- "Lambda target" --> toolLambda --> ddb
+    otel -.-> cw
